@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>LeadRadar</title>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <header class="topo">
+    <div class="container">
+      <h1>LeadRadar</h1>
+      <p>Encontre potenciais clientes locais para criação de sites.</p>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section class="busca">
+
+      <h2>Encontrar oportunidades</h2>
+
+      <div class="campo">
+        <label for="nicho">Nicho</label>
+
+        <select id="nicho">
+          <option value="oficina">Oficina mecânica</option>
+          <option value="barbearia">Barbearia</option>
+          <option value="petshop">Pet Shop</option>
+          <option value="restaurante">Restaurante</option>
+          <option value="dentista">Dentista</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="cidade">Cidade</label>
+
+        <input
+          type="text"
+          id="cidade"
+          placeholder="Ex.: Salvador, BA"
+        >
+      </div>
+
+      <button id="buscarBtn">
+        Buscar clientes
+      </button>
+
+      <p id="status"></p>
+
+    </section>
+
+    <section class="resultados">
+
+      <div class="resultado-topo">
+        <h2>Empresas encontradas</h2>
+        <span id="quantidade">0 resultados</span>
+      </div>
+
+      <div id="listaLeads"></div>
+
+    </section>
+
+  </main>
+
+  <script src="js/osm.js"></script>
+  <script src="js/score.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
