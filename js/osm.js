@@ -1,14 +1,15 @@
 // ======================================================
-// LeadRadar - Integração gratuita com OpenStreetMap
+// LeadRadar - OpenStreetMap / Overpass
+// Versão com fallback de servidores
 // ======================================================
 
-const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+const NOMINATIM_URL =
+  "https://nominatim.openstreetmap.org/search";
 
-
-// ------------------------------------------------------
-// Nichos disponíveis no LeadRadar
-// ------------------------------------------------------
+const OVERPASS_SERVIDORES = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter"
+];
 
 const NICHOS_OSM = {
   oficina: {
@@ -39,7 +40,7 @@ const NICHOS_OSM = {
 
 
 // ------------------------------------------------------
-// Localizar uma cidade
+// Localizar cidade
 // ------------------------------------------------------
 
 async function localizarCidade(cidade) {
@@ -57,14 +58,16 @@ async function localizarCidade(cidade) {
   );
 
   if (!resposta.ok) {
-    throw new Error("Não foi possível localizar a cidade.");
+    throw new Error(
+      "Não foi possível localizar a cidade."
+    );
   }
 
   const dados = await resposta.json();
 
   if (!dados.length) {
     throw new Error(
-      "Cidade não encontrada. Tente usar o formato: Salvador, BA."
+      "Cidade não encontrada. Use algo como: São Paulo, SP."
     );
   }
 
@@ -73,7 +76,7 @@ async function localizarCidade(cidade) {
 
 
 // ------------------------------------------------------
-// Criar endereço legível
+// Endereço
 // ------------------------------------------------------
 
 function criarEndereco(tags = {}) {
@@ -108,11 +111,10 @@ function criarEndereco(tags = {}) {
 
 
 // ------------------------------------------------------
-// Normalizar telefone
+// Contatos
 // ------------------------------------------------------
 
 function obterTelefone(tags = {}) {
-
   return (
     tags.phone ||
     tags["contact:phone"] ||
@@ -121,12 +123,8 @@ function obterTelefone(tags = {}) {
     ""
   );
 }
-// ------------------------------------------------------
-// Obter e-mail público
-// ------------------------------------------------------
 
 function obterEmail(tags = {}) {
-
   return (
     tags.email ||
     tags["contact:email"] ||
@@ -134,12 +132,7 @@ function obterEmail(tags = {}) {
   );
 }
 
-// ------------------------------------------------------
-// Obter website
-// ------------------------------------------------------
-
 function obterWebsite(tags = {}) {
-
   return (
     tags.website ||
     tags["contact:website"] ||
@@ -148,13 +141,7 @@ function obterWebsite(tags = {}) {
   );
 }
 
-
-// ------------------------------------------------------
-// Obter WhatsApp
-// ------------------------------------------------------
-
 function obterWhatsapp(tags = {}) {
-
   return (
     tags["contact:whatsapp"] ||
     tags.whatsapp ||
@@ -162,13 +149,7 @@ function obterWhatsapp(tags = {}) {
   );
 }
 
-
-// ------------------------------------------------------
-// Obter Instagram
-// ------------------------------------------------------
-
 function obterInstagram(tags = {}) {
-
   return (
     tags["contact:instagram"] ||
     tags.instagram ||
@@ -178,73 +159,16 @@ function obterInstagram(tags = {}) {
 
 
 // ------------------------------------------------------
-// Buscar empresas no OpenStreetMap
+// Fazer consulta em um servidor Overpass
 // ------------------------------------------------------
 
-async function buscarEmpresasOSM(nicho, cidade) {
-
-  // 1. Verifica se o nicho existe
-
-  const configuracao = NICHOS_OSM[nicho];
-
-  if (!configuracao) {
-    throw new Error("Nicho ainda não suportado.");
-  }
-
-
-  // 2. Localiza a cidade
-
-  const local = await localizarCidade(cidade);
-
-
-  // O Nominatim retorna:
-  // sul, norte, oeste, leste
-
-  const [
-    sul,
-    norte,
-    oeste,
-    leste
-  ] = local.boundingbox;
-
-
-  // 3. Configuração da categoria OSM
-
-  const chave = configuracao.chave;
-  const valor = configuracao.valor;
-
-
-  // 4. Monta consulta Overpass
-
-  const consulta = `
-
-    [out:json][timeout:25];
-
-    (
-
-      node
-        ["${chave}"="${valor}"]
-        (${sul},${oeste},${norte},${leste});
-
-      way
-        ["${chave}"="${valor}"]
-        (${sul},${oeste},${norte},${leste});
-
-      relation
-        ["${chave}"="${valor}"]
-        (${sul},${oeste},${norte},${leste});
-
-    );
-
-    out center tags;
-
-  `;
-
-
-  // 5. Consulta Overpass
+async function consultarOverpass(
+  servidor,
+  consulta
+) {
 
   const resposta = await fetch(
-    OVERPASS_URL,
+    servidor,
     {
       method: "POST",
 
@@ -258,93 +182,201 @@ async function buscarEmpresasOSM(nicho, cidade) {
     }
   );
 
-
   if (!resposta.ok) {
-
     throw new Error(
-      "O servidor do OpenStreetMap está ocupado. Tente novamente em alguns segundos."
+      `Servidor respondeu ${resposta.status}`
     );
+  }
 
+  return await resposta.json();
+}
+
+
+// ------------------------------------------------------
+// Tentar vários servidores
+// ------------------------------------------------------
+
+async function consultarComFallback(
+  consulta
+) {
+
+  let ultimoErro;
+
+  for (
+    const servidor of OVERPASS_SERVIDORES
+  ) {
+
+    try {
+
+      console.log(
+        "Tentando Overpass:",
+        servidor
+      );
+
+      const resultado =
+        await consultarOverpass(
+          servidor,
+          consulta
+        );
+
+      return resultado;
+
+    } catch (erro) {
+
+      console.warn(
+        "Falha no servidor:",
+        servidor,
+        erro
+      );
+
+      ultimoErro = erro;
+
+    }
+  }
+
+  throw new Error(
+    "Os servidores gratuitos de busca estão ocupados. Aguarde alguns segundos e tente novamente."
+  );
+}
+
+
+// ------------------------------------------------------
+// Buscar empresas
+// ------------------------------------------------------
+
+async function buscarEmpresasOSM(
+  nicho,
+  cidade
+) {
+
+  const configuracao =
+    NICHOS_OSM[nicho];
+
+  if (!configuracao) {
+    throw new Error(
+      "Nicho ainda não suportado."
+    );
   }
 
 
-  const dados = await resposta.json();
+  // 1. Localizar cidade
+
+  const local =
+    await localizarCidade(cidade);
 
 
-  // 6. Organiza os resultados
-
-  const empresas = dados.elements
-    .filter(elemento => {
-
-      return (
-        elemento.tags &&
-        elemento.tags.name
-      );
-
-    })
-
-    .map(elemento => {
-
-      const tags = elemento.tags || {};
+  const [
+    sul,
+    norte,
+    oeste,
+    leste
+  ] = local.boundingbox;
 
 
-      return {
+  const chave =
+    configuracao.chave;
 
-        id:
-          `${elemento.type}-${elemento.id}`,
-
-        osmId:
-          elemento.id,
-
-        tipo:
-          elemento.type,
-
-        nome:
-          tags.name || "Empresa sem nome",
-telefone:
-  obterTelefone(tags),
-
-email:
-  obterEmail(tags),
-
- website:
-  obterWebsite(tags),
-       
-        whatsapp:
-          obterWhatsapp(tags),
-
-        instagram:
-          obterInstagram(tags),
-
-        endereco:
-          criarEndereco(tags),
-
-        horario:
-          tags.opening_hours || "",
-
-        latitude:
-          elemento.lat ||
-          elemento.center?.lat ||
-          null,
-
-        longitude:
-          elemento.lon ||
-          elemento.center?.lon ||
-          null,
-
-        tags:
-          tags
-
-      };
-
-    });
+  const valor =
+    configuracao.valor;
 
 
-  // 7. Remover possíveis duplicidades
+  // ----------------------------------------------------
+  // Consulta mais enxuta
+  // nwr = node + way + relation
+  // ----------------------------------------------------
+
+  const consulta = `
+    [out:json][timeout:60];
+
+    nwr
+      ["${chave}"="${valor}"]
+      ["name"]
+      (${sul},${oeste},${norte},${leste});
+
+    out center tags qt;
+  `;
+
+
+  // 2. Consulta com fallback
+
+  const dados =
+    await consultarComFallback(
+      consulta
+    );
+
+
+  // 3. Organizar resultados
+
+  const empresas =
+    dados.elements.map(
+      elemento => {
+
+        const tags =
+          elemento.tags || {};
+
+        return {
+
+          id:
+            `${elemento.type}-${elemento.id}`,
+
+          osmId:
+            elemento.id,
+
+          tipo:
+            elemento.type,
+
+          nome:
+            tags.name ||
+            "Empresa sem nome",
+
+          telefone:
+            obterTelefone(tags),
+
+          email:
+            obterEmail(tags),
+
+          website:
+            obterWebsite(tags),
+
+          whatsapp:
+            obterWhatsapp(tags),
+
+          instagram:
+            obterInstagram(tags),
+
+          endereco:
+            criarEndereco(tags),
+
+          horario:
+            tags.opening_hours ||
+            "",
+
+          latitude:
+            elemento.lat ||
+            elemento.center?.lat ||
+            null,
+
+          longitude:
+            elemento.lon ||
+            elemento.center?.lon ||
+            null,
+
+          tags:
+            tags
+        };
+
+      }
+    );
+
+
+  // ----------------------------------------------------
+  // Remover duplicidades
+  // ----------------------------------------------------
 
   const empresasUnicas = [];
 
-  const nomesEncontrados = new Set();
+  const encontrados =
+    new Set();
 
 
   for (const empresa of empresas) {
@@ -354,15 +386,20 @@ email:
         .trim()
         .toLowerCase();
 
+    if (
+      !encontrados.has(
+        identificador
+      )
+    ) {
 
-    if (!nomesEncontrados.has(identificador)) {
+      encontrados.add(
+        identificador
+      );
 
-      nomesEncontrados.add(identificador);
-
-      empresasUnicas.push(empresa);
-
+      empresasUnicas.push(
+        empresa
+      );
     }
-
   }
 
 
@@ -378,12 +415,11 @@ email:
       empresasUnicas
 
   };
-
 }
 
 
 // ------------------------------------------------------
-// Disponibiliza função para os outros arquivos JS
+// Exportar para outros arquivos
 // ------------------------------------------------------
 
 window.buscarEmpresasOSM =
