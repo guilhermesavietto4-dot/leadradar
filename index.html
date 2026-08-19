@@ -36,19 +36,101 @@
         </select>
       </div>
 
-      <div class="campo">
-        <label for="cidade">Cidade</label>
+ <div class="campo">
+  <label for="cidade">Cidade</label>
 
-        <input
-          type="text"
-          id="cidade"
-          placeholder="Ex.: Salvador, BA"
-        >
-      </div>
+  <input
+    type="text"
+    id="cidade"
+    placeholder="Ex.: Salvador, BA"
+  >
+</div>
 
-      <button id="buscarBtn">
-        Buscar clientes
-      </button>
+
+<!-- FILTROS COMERCIAIS -->
+
+<div class="filtros">
+
+  <div class="filtros-titulo">
+    <strong>Filtros comerciais</strong>
+    <span>Mostre primeiro os leads que interessam</span>
+  </div>
+
+
+  <div class="filtros-grid">
+
+    <label class="filtro-check">
+      <input
+        type="checkbox"
+        id="filtroSemSite"
+      >
+
+      <span>
+        🌐 Sem site
+      </span>
+    </label>
+
+
+    <label class="filtro-check">
+      <input
+        type="checkbox"
+        id="filtroWhatsapp"
+      >
+
+      <span>
+        💬 Com WhatsApp
+      </span>
+    </label>
+
+
+    <label class="filtro-check">
+      <input
+        type="checkbox"
+        id="filtroEmail"
+      >
+
+      <span>
+        ✉️ Com e-mail
+      </span>
+    </label>
+
+
+    <div class="filtro-score">
+
+      <label for="filtroScore">
+        Score mínimo
+      </label>
+
+      <select id="filtroScore">
+
+        <option value="0">
+          Todos
+        </option>
+
+        <option value="40">
+          40+
+        </option>
+
+        <option value="60">
+          60+
+        </option>
+
+        <option value="80">
+          80+ 🔥
+        </option>
+
+      </select>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<button id="buscarBtn">
+  Buscar clientes
+</button>   
 
       <p id="status"></p>
 
