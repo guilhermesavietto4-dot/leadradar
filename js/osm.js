@@ -121,7 +121,18 @@ function obterTelefone(tags = {}) {
     ""
   );
 }
+// ------------------------------------------------------
+// Obter e-mail público
+// ------------------------------------------------------
 
+function obterEmail(tags = {}) {
+
+  return (
+    tags.email ||
+    tags["contact:email"] ||
+    ""
+  );
+}
 
 // ------------------------------------------------------
 // Obter website
@@ -290,13 +301,15 @@ async function buscarEmpresasOSM(nicho, cidade) {
 
         nome:
           tags.name || "Empresa sem nome",
+telefone:
+  obterTelefone(tags),
 
-        telefone:
-          obterTelefone(tags),
+email:
+  obterEmail(tags),
 
-        website:
-          obterWebsite(tags),
-
+ website:
+  obterWebsite(tags),
+       
         whatsapp:
           obterWhatsapp(tags),
 
