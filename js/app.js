@@ -61,6 +61,21 @@ function criarCardLead(empresa) {
     ? `<p>☎️ ${escaparHTML(empresa.telefone)}</p>`
     : `<p>☎️ Telefone não informado</p>`;
 
+  const emailHTML = empresa.email
+  ? `
+    <p>
+      ✉️
+      <a href="mailto:${escaparHTML(empresa.email)}">
+        ${escaparHTML(empresa.email)}
+      </a>
+    </p>
+  `
+  : `
+    <p>
+      ✉️ E-mail não informado
+    </p>
+  `;
+  
   const whatsappHTML = empresa.whatsapp
     ? `<p>💬 WhatsApp disponível</p>`
     : "";
@@ -100,13 +115,14 @@ function criarCardLead(empresa) {
           ${escaparHTML(empresa.classificacao.texto)}
         </p>
 
-        ${siteHTML}
-        ${telefoneHTML}
-        ${whatsappHTML}
-        ${instagramHTML}
-        ${enderecoHTML}
-        ${mapaHTML}
-
+ ${siteHTML}
+${telefoneHTML}
+${emailHTML}
+${whatsappHTML}
+${instagramHTML}
+${enderecoHTML}
+${mapaHTML}
+ 
       </div>
 
       <div class="score ${classeScore}">
